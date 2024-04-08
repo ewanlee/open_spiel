@@ -51,9 +51,13 @@ def get_config():
 
   given_private_info = collections.OrderedDict()
   given_private_info['fruit_endowment'] = [scenario_trade_fruit.ENDOWMENT_A,
-                                           scenario_trade_fruit.ENDOWMENT_B]
+                                           scenario_trade_fruit.ENDOWMENT_B,
+                                           scenario_trade_fruit.ENDOWMENT_C,
+                                           scenario_trade_fruit.ENDOWMENT_D]
   given_private_info['fruit_valuations'] = [scenario_trade_fruit.VALUATION_A,
-                                            scenario_trade_fruit.VALUATION_B]
+                                            scenario_trade_fruit.VALUATION_B,
+                                            scenario_trade_fruit.VALUATION_C,
+                                            scenario_trade_fruit.VALUATION_D]
 
   scenario_a = env_trade_fruit_with_tone_info.Scenario(
       scenario_trade_fruit.SCENARIO_A,

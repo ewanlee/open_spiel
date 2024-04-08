@@ -40,7 +40,7 @@ SCENARIO_B_LIST = ['Hi {receiver},',
                    'I would like to trade you 3 blueberries for 1 banana.',
                    'Would you like to trade with me?',
                    'Best,', '{sender}']
-SCENARIO_B = '\n\n'.join(text.wrap(SCENARIO_A_LIST))
+SCENARIO_B = '\n\n'.join(text.wrap(SCENARIO_B_LIST))
 
 ENDOWMENT_B_LIST = ['apple: 0', 'banana: 0', 'blueberry: 5', 'kiwi: 3']
 ENDOWMENT_B = '\n'.join(text.wrap(ENDOWMENT_B_LIST))
@@ -50,6 +50,38 @@ VALUATION_B_LIST = ['apple: 8',
                     'blueberry: 2',
                     'kiwi: 2']
 VALUATION_B = '\n'.join(text.wrap(VALUATION_B_LIST))
+
+# Scenario C
+SCENARIO_C_LIST = ['Hi {receiver},',
+                   'I would like to trade you 2 kiwis for 1 apple.',
+                   'Would you like to trade with me?',
+                   'Best,', '{sender}']
+SCENARIO_C = '\n\n'.join(text.wrap(SCENARIO_C_LIST))
+
+ENDOWMENT_C_LIST = ['apple: 1', 'banana: 0', 'blueberry: 0', 'kiwi: 3']
+ENDOWMENT_C = '\n'.join(text.wrap(ENDOWMENT_C_LIST))
+
+VALUATION_C_LIST = ['apple: 10',
+                    'banana: 5',
+                    'blueberry: 1',
+                    'kiwi: 3']
+VALUATION_C = '\n'.join(text.wrap(VALUATION_C_LIST))
+
+# Scenario D
+SCENARIO_D_LIST = ['Hi {receiver},',
+                   'I would like to trade you 1 banana for 1 kiwi.',
+                   'Would you like to trade with me?',
+                   'Best,', '{sender}']
+SCENARIO_D = '\n\n'.join(text.wrap(SCENARIO_D_LIST))
+
+ENDOWMENT_D_LIST = ['apple: 0', 'banana: 2', 'blueberry: 0', 'kiwi: 1']
+ENDOWMENT_D = '\n'.join(text.wrap(ENDOWMENT_D_LIST))
+
+VALUATION_D_LIST = ['apple: 10',
+                    'banana: 5',
+                    'blueberry: 1',
+                    'kiwi: 3']
+VALUATION_D = '\n'.join(text.wrap(VALUATION_D_LIST))
 
 query = ('Read the following summary of a dialgoue between two parties ' +
          'attempting to reach a trade agreement. Have the players reached a ' +

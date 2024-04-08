@@ -46,7 +46,7 @@ PAYOFF_PROMPT_b = [
     'Now calculate the value of the trade made in the following message.',
     '{m}',
     '&' * 50,
-    'Trade calculation for {p} ONLY: ']
+    'Trade calculation for {p} ONLY: ',]
 
 PAYOFF_PROMPT = ('\n\n'.join(text.wrap(PAYOFF_PROMPT_a)) + '\n\n' + '&' * 50 +
                  '\n\nBob offered to give up 1 banana for 3 kiwis. Alice ' +
@@ -82,7 +82,18 @@ PAYOFF_OBS_TRANS_PREFIX = ['Read the following dialogue between two parties ' +
 PAYOFF_OBS_TRANS_PREFIX = ('\n\n'.join(text.wrap(PAYOFF_OBS_TRANS_PREFIX)) +
                            '\n\n')
 
-PAYOFF_OBS_TRANS_POSTFIX = ''
+# PAYOFF_OBS_TRANS_POSTFIX = ['Report how much of each fruit each ' +
+#                            'player gave and received in the tradeby stating ' +
+#                            'the players names followed by a list of the ' +
+#                            'fruits the gave up and then a list of the fruits ' +
+#                            'they received in this format:',
+#                            'Player [Name]: Receives x Gives y',
+#                            'Player [Name]: Receives y Gives x',
+#                            '\n\n',
+#                            'Player ']
+PAYOFF_OBS_TRANS_POSTFIX = ['Report: ']
+PAYOFF_OBS_TRANS_POSTFIX = ('\n\n'.join(text.wrap(PAYOFF_OBS_TRANS_POSTFIX)) +
+                           '\n\n')
 
 PAYOFF = payoff_utils.Payoff(PAYOFF_PROMPT,
                              MIN_PAYOFF,

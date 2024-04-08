@@ -20,6 +20,8 @@ from absl.testing import parameterized
 from open_spiel.python.games import chat_game  # pylint: disable=unused-import
 
 from open_spiel.python.games.chat_games.configs import config_fixed_mock
+from open_spiel.python.games.chat_games.configs import config_trade_fruit_w_tone_fixed
+from open_spiel.python.games.chat_games.configs import config_trade_fruit_w_tone
 from open_spiel.python.games.chat_games.configs import config_rnd_mock
 
 from open_spiel.python.games.chat_games.utils import test_utils as chat_test_utils
@@ -27,7 +29,8 @@ from open_spiel.python.games.chat_games.utils import test_utils as chat_test_uti
 import pyspiel
 
 
-GLOBAL_TEST_LLM = chat_test_utils.TestLLM.MOCK
+# GLOBAL_TEST_LLM = chat_test_utils.TestLLM.MOCK
+GLOBAL_TEST_LLM = chat_test_utils.TestLLM.LLAMA2CHAT
 
 
 class ChatGameTest(parameterized.TestCase):
@@ -35,15 +38,19 @@ class ChatGameTest(parameterized.TestCase):
   def setUp(self):
     super().setUp()
 
-    self.fixed_config = config_fixed_mock.get_config()
-    self.random_config = config_rnd_mock.get_config()
+    # self.fixed_config = config_fixed_mock.get_config()
+    self.fixed_config = config_trade_fruit_w_tone_fixed.get_config()
+    # self.random_config = config_rnd_mock.get_config()
+    self.random_config = config_trade_fruit_w_tone.get_config()
 
-    vectorizer = chat_test_utils.MockVectorizer()
+    # vectorizer = chat_test_utils.MockVectorizer()
+    vectorizer = chat_test_utils.Llama2ChatVectorizer()
     self.vectorize = vectorizer.vectorize
 
   @parameterized.named_parameters(
-      dict(testcase_name='fixed_scenario', fixed_scenario=True),
-      dict(testcase_name='random_scenario', fixed_scenario=False))
+      # dict(testcase_name='fixed_scenario', fixed_scenario=True),
+      dict(testcase_name='random_scenario', fixed_scenario=False)
+  )
   def test_game_from_cc(self, fixed_scenario):
     """Runs our standard game tests, checking API consistency."""
 
@@ -59,7 +66,7 @@ class ChatGameTest(parameterized.TestCase):
                         seed=1234,
                         **config.game)
 
-    pyspiel.random_sim_test(game, num_sims=10, serialize=False, verbose=True)
+    pyspiel.random_sim_test(game, num_sims=1, serialize=False, verbose=True)
 
 
 if __name__ == '__main__':

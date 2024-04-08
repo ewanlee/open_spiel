@@ -179,6 +179,8 @@ class ChatGame(chat_game_base.BaseChatGame):
     self._llm_type = llm_type
     if self._llm_type == chat_test_utils.TestLLM.MOCK:
       self._lm = chat_test_utils.MockLLM()
+    elif self._llm_type == chat_test_utils.TestLLM.LLAMA2CHAT:
+      self._lm = chat_test_utils.Llama2Chat()
     else:
       raise NotImplementedError(f'llm_type {self._llm_type} not available.')
     # Define LLM model here
@@ -210,7 +212,8 @@ class ChatGame(chat_game_base.BaseChatGame):
                         num_output_tokens: Union[int, None] = None) -> str:
     """Returns LLM generated string given prompt and seed."""
     # Define generate response here
-    if self._llm_type == chat_test_utils.TestLLM.MOCK:
+    if self._llm_type == chat_test_utils.TestLLM.MOCK or \
+        self._llm_type == chat_test_utils.TestLLM.LLAMA2CHAT:
       return self._lm.generate_response(prompt, seed, num_output_tokens)
     else:
       raise NotImplementedError(f'llm_type {self._llm_type} not available.')
@@ -219,7 +222,8 @@ class ChatGame(chat_game_base.BaseChatGame):
   def generate_bool(self, prompt: str, seed: int) -> bool:
     """Returns LLM generated boolean given prompt and seed."""
     # Define generate bool here (e.g., for terminating an episode)
-    if self._llm_type == chat_test_utils.TestLLM.MOCK:
+    if self._llm_type == chat_test_utils.TestLLM.MOCK or \
+        self._llm_type == chat_test_utils.TestLLM.LLAMA2CHAT:
       return self._lm.generate_bool(prompt, seed)
     else:
       raise NotImplementedError(f'llm_type {self._llm_type} not available.')

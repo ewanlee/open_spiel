@@ -53,7 +53,7 @@ LLM_LENGTH_PAYOFF_OBS_CHARS = 300
 LLM_LENGTH_LIST_OF_WORDS_TOKENS = 30
 LLM_LIST_GEN_ATTEMPTS = 30
 
-LLM_LENGTH_SCORE_TOKENS = 10
+LLM_LENGTH_SCORE_TOKENS = 300
 
 ITEM_PREFIX = '* '
 
@@ -186,6 +186,7 @@ class ChatGameState(pyspiel.State):
       term_obs = self.get_game().generate_response(prompt,
                                                    seed=DEFAULT_LLM_SEED)
       logging.info(ct.color('LLM summary:\n%s'), term_obs)
+      input('Press enter to continue...')
     else:
       term_obs = self.dialogue_str
     llm_termination = self.get_game().generate_bool(
@@ -193,6 +194,7 @@ class ChatGameState(pyspiel.State):
         seed=DEFAULT_LLM_SEED)
     logging.info(ct.color('LLM termination condition met? %s'),
                  str(llm_termination))
+    input('Press enter to continue...')
     return llm_termination
 
   def _names_from_validated_receiver(self, receiver: int, speaker: int
@@ -209,6 +211,7 @@ class ChatGameState(pyspiel.State):
     if (receiver >= self.get_game().num_players()
         or speaker >= self.get_game().num_players()):
       logging.info('Warning: rolling receiver/speaker to valid id.')
+      input('Press enter to continue...')
     receiver = receiver % self.get_game().num_players()
     speaker = speaker % self.get_game().num_players()
     # overwrite speaking to self as speaking to all in header
@@ -270,6 +273,7 @@ class ChatGameState(pyspiel.State):
       speaker_msg: str
     """
     logging.info('Speaker message:\n%s', speaker_msg)
+    input('Press enter to continue...')
     self._dialogue.append(speaker_msg)
     self._speakers.append(self._current_player)
 
@@ -326,6 +330,7 @@ class ChatGameState(pyspiel.State):
     logging.info('Generating message (speaker=%d:%s)...',
                  speaker,
                  speaker_name)
+    input('Press enter to continue...')
 
     prompt = header.context + '\n\n' + self.dialogue_str + header_w_opts
 
@@ -350,7 +355,8 @@ class ChatGameState(pyspiel.State):
         num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
     )
     response = response[:LLM_LENGTH_MESSAGE_CHARS]
-    logging.info('LLM response:\n%s', response)
+    logging.info(ct.color('LLM response:\n%s'), response)
+    input('Press enter to continue...')
 
     first_special_char = text.first_special_char(
         response, len(response), self.get_game().header.special_chars)
@@ -410,7 +416,7 @@ class ChatGameState(pyspiel.State):
       for p, payoff in enumerate(self.get_game().payoffs):
         if payoff.obs_trans_prefix or payoff.obs_trans_postfix:
           payoff_obs_prompt = (payoff.obs_trans_prefix +
-                               dialogue +
+                               dialogue + '\n\n' +
                                payoff.obs_trans_postfix)
           logging.info(ct.color('Scoring payoff (speaker=%d:%s)...'),
                        player, name)
@@ -420,6 +426,8 @@ class ChatGameState(pyspiel.State):
               seed=DEFAULT_LLM_SEED,
               num_output_tokens=LLM_LENGTH_PAYOFF_OBS_TOKENS
           )
+          logging.info(ct.color('LLM response:\n%s'), response)
+          input('Press enter to continue...')
           payoff_obs = response[:LLM_LENGTH_PAYOFF_OBS_CHARS]
         else:
           payoff_obs = dialogue
@@ -434,6 +442,7 @@ class ChatGameState(pyspiel.State):
             num_output_tokens=LLM_LENGTH_SCORE_TOKENS
             )
         logging.info(ct.color('LLM response:\n%s'), response)
+        input('Press enter to continue...')
 
         logging.info(ct.color('Extracting payoff %d (player=%d:%s)...'),
                      p, player, name)
@@ -448,6 +457,7 @@ class ChatGameState(pyspiel.State):
             num_output_tokens=LLM_LENGTH_SCORE_TOKENS
             )
         logging.info(ct.color('LLM response:\n%s'), response)
+        input('Press enter to continue...')
 
         player_payoff = 0  # payoff defaults to 0 if LLM parsing fails
         if text.retrieve_numeric_block(response):
@@ -690,6 +700,7 @@ class ChatGameObserverBase:
           num_output_tokens=LLM_LENGTH_OBS_TOKENS
           )
       logging.info(ct.color('LLM response:\n%s'), response)
+      input('Press enter to continue...')
       obs = response[:LLM_LENGTH_OBS_CHARS]
 
       obs = info_prefix + '\n' + obs
@@ -734,6 +745,7 @@ class ChatGameObserverBase:
           num_output_tokens=LLM_LENGTH_OBS_TOKENS
           )
       logging.info(ct.color('LLM response:\n%s'), response)
+      input('Press enter to continue...')
       obs = response[:LLM_LENGTH_OBS_CHARS]
 
       obs = info_prefix + '\n' + obs
@@ -926,7 +938,8 @@ class BaseChatGame(pyspiel.Game):
       self._names = self._given_names
       self._names_gen = False
     else:
-      retrieve_name = text.retrieve_alpha_block
+      # retrieve_name = text.retrieve_alpha_block
+      retrieve_name = text.retrieve_name_block # for Llama-2-7b-Chat
       self._names = self.generate_prompts('name',
                                           self._examples_names,
                                           self._num_names,
@@ -982,6 +995,7 @@ class BaseChatGame(pyspiel.Game):
           self._num_prompt_actions[i] = len(action_list)
       else:
         examples = self._examples_prompt_actions[action_key]
+        retrieve_prompt = text.retrieve_name_block # for Llama-2-7b-Chat
         action_list = self.generate_prompts(action_key,
                                             examples,
                                             self._num_prompt_actions[i],
@@ -1028,6 +1042,7 @@ class BaseChatGame(pyspiel.Game):
           self._num_private_info[i] = len(info_list)
       else:
         examples = self._examples_private_info[info_key]
+        retrieve_prompt = text.retrieve_name_block # for Llama-2-7b-Chat
         info_list = self.generate_prompts(info_key,
                                           examples,
                                           self._num_private_info[i],
@@ -1140,9 +1155,10 @@ class BaseChatGame(pyspiel.Game):
     num_gen = LLM_LIST_GEN_ATTEMPTS
     prompt = ['#### INSTRUCTIONS #####',
               'Given a list of items from a given category, continue the list' +
-              ' and generate an additional item from the same category. The ' +
+              ' and generate one additional item from the same category. The ' +
               f'category is {key}s. Use `{ITEM_PREFIX}` to denote separate ' +
-              'items.']
+              'items. DO NOT explain your output. ' +
+              'Your output should strictly follow the format of the example items.']
     prompt = '\n'.join(text.wrap(prompt)) + '\n'
     prompt += ('Input:\n' + ITEM_PREFIX +
                ('\n' + ITEM_PREFIX).join(examples) + '\n' +
@@ -1157,6 +1173,7 @@ class BaseChatGame(pyspiel.Game):
           num_output_tokens=LLM_LENGTH_LIST_OF_WORDS_TOKENS
           )
       logging.info(ct.color('LLM response\n%s'), response)
+      input('Press enter to continue...')
       answer = retrieve_prompt(response)
       if answer and answer not in answers:
         answers.add(answer)
@@ -1231,7 +1248,8 @@ class BaseChatGame(pyspiel.Game):
         num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
         )
     response = response[:LLM_LENGTH_MESSAGE_CHARS]
-    logging.info('LLM response:\n%s', response)
+    logging.info(ct.color('LLM response:\n%s'), response)
+    input('Press enter to continue...')
     examples = []
     ptr = 0
     i = 0

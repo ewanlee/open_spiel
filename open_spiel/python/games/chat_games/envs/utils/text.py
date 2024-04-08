@@ -108,6 +108,14 @@ def retrieve_alpha_block(text: str) -> str:
   return text[start:start + finish]
 
 
+def retrieve_name_block(text: str) -> str:
+  """Return the generated name from a string."""
+  start_idx = text.rfind('*')
+  if start_idx == -1:
+    return ''
+  return text[start_idx+1:].strip()
+
+
 def retrieve_numeric_block(text: str) -> str:
   """Return the first instance of a contiguous numeric(not alpha) substring."""
   first_numeric_char = next(filter(str.isnumeric, text), -1)
