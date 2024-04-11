@@ -74,7 +74,7 @@ def get_config():
             'num_players': num_players,
             'min_utility': min([float(p.min) for p in payoffs]),
             'max_utility': max([float(p.max) for p in payoffs]),
-            'num_max_replies': 1}
+            'num_max_replies': 5}
 
   config.params = params
 

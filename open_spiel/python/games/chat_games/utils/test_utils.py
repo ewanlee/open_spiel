@@ -236,7 +236,9 @@ class Llama2ChatClient:
         prompt_lower = prompt.lower()
         info_keys = ["names", "tones", "fruit_endowment", "fruit_valuations"]
         Llama2ChatResponse = Llama2Response
-        if "summary" in prompt_lower:
+        if "read the following summary of a dialgoue between two parties attempting to reach a trade agreement" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif "summary" in prompt_lower:
             start_idx = prompt_lower.rindex('please summarize the following')
             system_message = prompt[:start_idx]
             user_message = prompt[start_idx:]
@@ -299,13 +301,24 @@ class Llama2Chat:
         return response.text
 
     def generate_bool(self, prompt: str, seed: int) -> bool:
-        scores = self.client.score(model=self.llm.model, tokenizer=self.llm.tokenizer, prompt=prompt, outputs=["Yes", "No"], seed=seed)
-        score_true = scores[0].logprob
-        score_false = scores[1].logprob
-        if score_true > score_false:
-            return True
-        else:
-            return False
+        # prompt = 'Read the following summary of a dialgoue between two parties attempting to reach a trade agreement. Have the players reached a trade agreement? If a trade has been accepted or the players cannot come to an agreement, respond Yes. Otherwise, if the players are still discussing terms, respond No.Here is the dialogue:\n\nBob proposes trading one banana for one apple with Suzy. Suzy agrees.\n\n&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&Response: '
+        response = self.client.sample(
+            model=self.llm.model, 
+            tokenizer=self.llm.tokenizer, 
+            length=200, 
+            seed=seed, 
+            prompt=prompt
+        )
+        terminate = response.text.strip() == "Yes"
+        return terminate
+        # TODO: score comparison is not working
+        # scores = self.client.score(model=self.llm.model, tokenizer=self.llm.tokenizer, prompt=prompt, outputs=["Yes", "No"], seed=seed)
+        # score_true = scores[0].logprob
+        # score_false = scores[1].logprob
+        # if score_true > score_false:
+        #     return True
+        # else:
+        #     return False
         
 
 @dataclasses.dataclass(frozen=True)
