@@ -14,6 +14,7 @@
 
 """Tests for pyspiel Chat Game."""
 
+import collections
 from absl.testing import absltest
 from absl.testing import parameterized
 
@@ -67,6 +68,9 @@ class ChatGameTest(parameterized.TestCase):
                         vectorize=self.vectorize,
                         seed=1234,
                         **config.game)
+    
+    game._prompt_actions = collections.OrderedDict()
+    game._prompt_actions['tone'] = ['calm', 'assertive', 'submissive', 'new_tone']
 
     # pyspiel.random_sim_test(game, num_sims=1, serialize=False, verbose=True)
 

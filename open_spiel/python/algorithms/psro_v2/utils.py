@@ -15,6 +15,7 @@
 """Various general utility functions."""
 
 import random
+import time
 import numpy as np
 
 from open_spiel.python.algorithms import get_all_states
@@ -44,6 +45,7 @@ def random_choice(outcomes, probabilities):
   Returns:
     Entry of `outcomes` sampled according to the distribution.
   """
+  random.seed(time.time())
   cumsum = np.cumsum(probabilities)
   return outcomes[np.searchsorted(cumsum/cumsum[-1], random.random())]
 

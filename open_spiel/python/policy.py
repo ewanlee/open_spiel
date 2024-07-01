@@ -395,6 +395,40 @@ class TabularPolicy(Policy):
     copied_instance.action_probability_array = (
         1 - alpha) * probability_array + alpha * noise_mask
     return copied_instance
+  
+class RandomPolicy(Policy):
+  """Policy where the action distribution is sampled from a random distribution.
+
+  This is just a demonstration of how to implement a custom policy.
+  """
+
+  def __init__(self, game):
+    """Initializes a random policy for all players in the game."""
+    all_players = list(range(game.num_players()))
+    super().__init__(game, all_players)
+
+  def action_probabilities(self, state, player_id=None):
+    """Returns a random policy for a player in a state.
+
+    Args:
+      state: A `pyspiel.State` object.
+      player_id: Optional, the player id for which we want an action. Optional
+        unless this is a simultaneous state at which multiple players can act.
+
+    Returns:
+      A `dict` of `{action: probability}` for the specified player in the
+      supplied state. This will contain all legal actions, each with a random
+      probability.
+    """
+    legal_actions = (
+        state.legal_actions()
+        if player_id is None else state.legal_actions(player_id))
+    if not legal_actions:
+      return {0: 1.0}
+    probability = np.random.rand(len(legal_actions))
+    probability /= np.sum(probability)
+    return {action: probability for action, probability in zip(
+      legal_actions, probability)}
 
 
 class UniformRandomPolicy(Policy):

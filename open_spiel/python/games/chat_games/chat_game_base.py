@@ -238,7 +238,7 @@ class ChatGameState(pyspiel.State):
   def _legal_actions(self, player: int) -> List[int]:
     """Returns a list of legal actions, sorted in ascending order."""
     assert player >= 0
-    return list(range(int(np.prod(self._num_actions))))
+    return list(range(int(np.prod(self._num_actions[player]))))
 
   def _apply_action(self, action: int):
     """Reply to dialogue (for agents).
