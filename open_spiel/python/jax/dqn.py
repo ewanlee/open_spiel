@@ -188,7 +188,7 @@ class DQN(rl_agent.AbstractAgent):
       if self._step_counter % self._update_target_network_every == 0:
         # state_dict method returns a dictionary containing a whole state of the
         # module.
-        self.params_target_q_network = jax.tree_map(
+        self.params_target_q_network = jax.tree_util.tree_map(
             lambda x: x.copy(), self.params_q_network)
 
       if self._prev_timestep and add_transition_record:
@@ -280,7 +280,7 @@ class DQN(rl_agent.AbstractAgent):
         (1 - legal_actions_mask) * ILLEGAL_ACTION_LOGITS_PENALTY,
         axis=-1)
     max_next_q = jax.numpy.where(
-        1 - are_final_steps, x=max_next_q, y=jnp.zeros_like(max_next_q))
+        1 - are_final_steps, max_next_q, jnp.zeros_like(max_next_q))
     target = (
         rewards + (1 - are_final_steps) * self._discount_factor * max_next_q)
     target = jax.lax.stop_gradient(target)

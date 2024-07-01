@@ -161,6 +161,10 @@ set(GAME_SOURCES
   skat/skat.h
   solitaire/solitaire.cc
   solitaire/solitaire.h
+  spades/spades.cc
+  spades/spades.h
+  spades/spades_scoring.cc
+  spades/spades_scoring.h
   stones_and_gems/stones_and_gems.cc
   stones_and_gems/stones_and_gems.h
   tarok/tarok.cc
@@ -179,6 +183,11 @@ set(GAME_SOURCES
   trade_comm/trade_comm.h
   twenty_forty_eight/2048.cc
   twenty_forty_eight/2048.h
+  twixt/twixt.cc
+  twixt/twixt.h
+  twixt/twixtboard.cc
+  twixt/twixtboard.h
+  twixt/twixtcell.h
   ultimate_tic_tac_toe/ultimate_tic_tac_toe.h
   ultimate_tic_tac_toe/ultimate_tic_tac_toe.cc
   y/y.cc
@@ -205,10 +214,6 @@ endif()
 if (${OPEN_SPIEL_BUILD_WITH_GAMUT})
   add_subdirectory(gamut)
 endif()
-
-
-# Uncomment to build the Ludii demo
-# add_subdirectory (ludii)
 
 add_library(bridge_double_dummy_solver OBJECT
   bridge/double_dummy_solver/include/dll.h
@@ -578,6 +583,10 @@ add_executable(solitaire_test solitaire/solitaire_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
 add_test(solitaire_test solitaire_test)
 
+add_executable(spades_test spades/spades_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(spades_test spades_test)
+
 add_executable(stones_and_gems_test stones_and_gems/stones_and_gems_test.cc
                ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
@@ -608,6 +617,10 @@ add_test(tiny_hanabi_test tiny_hanabi_test)
 add_executable(trade_comm_test trade_comm/trade_comm_test.cc ${OPEN_SPIEL_OBJECTS}
                $<TARGET_OBJECTS:tests>)
 add_test(trade_comm_test trade_comm_test)
+
+add_executable(twixt_test twixt/twixt_test.cc ${OPEN_SPIEL_OBJECTS}
+               $<TARGET_OBJECTS:tests>)
+add_test(twixt_test twixt_test)
 
 add_executable(ultimate_tic_tac_toe_test ultimate_tic_tac_toe/ultimate_tic_tac_toe_test.cc
                ${OPEN_SPIEL_OBJECTS} $<TARGET_OBJECTS:tests>)
