@@ -36,8 +36,9 @@ import torch
 from torch.nn.functional import softmax, log_softmax
 import random
 
-PATH = "/home/ewanlee/Models/llama-2-7b-chat-hf/models/"
+# PATH = "/home/ewanlee/Models/llama-2-7b-chat-hf/models/"
 # PATH = "/home/ewanlee/Models/llama-2-7b-hf/models/"
+PATH = "/home/ewanlee/Models/llama-3-8b-instruct/models/"
 
 def set_seed(seed):
     random.seed(seed)
@@ -149,24 +150,33 @@ class Llama2ChatResponse:
         input_ids = self.tokenizer.apply_chat_template(
             self.conversation_history, 
             return_tensors="pt", 
+            add_generation_prompt=True, # for llama 3
             add_special_tokens=False)
         start_idx = input_ids.shape[-1]
 
         if torch.cuda.is_available():
             input_ids = input_ids.to("cuda")
 
+        # for llama 3
+        terminators = [
+            self.tokenizer.eos_token_id,
+            self.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+        ]
+
         generate_kwargs = {
             "input_ids": input_ids,
             "max_new_tokens": self.length,
             "do_sample": True,
-            "top_k": 50,
+            # "top_k": 50, # for llama 2
             "top_p": 0.9,
             "temperature": 0.6,
-            "repetition_penalty": 1.2,
-            "num_beams": 1,
+            # "repetition_penalty": 1.2, # for llama 2
+            # "num_beams": 1, # for llama 2
             # "output_scores": True,
             # "return_dict_in_generate": True,
             # "output_logits": True,
+            "eos_token_id": terminators, # for llama 3
+            "pad_token_id": self.tokenizer.eos_token_id, # for llama 3
         }
         set_seed(self.seed)
         generate_ids = self.model.generate(**generate_kwargs)
@@ -209,14 +219,15 @@ class Llama2ChatModel:
         model = AutoModelForCausalLM.from_pretrained(
             path,
             device_map=device_map,
-            torch_dtype=torch.float16,
+            # torch_dtype=torch.float16, # for llama 2
+            torch_dtype=torch.bfloat16, # for llama 3
             # load_in_8bit=True,
             trust_remote_code=True,
             # use_flash_attention_2=True,
         )
         self.model = model.eval()
         self.tokenizer = AutoTokenizer.from_pretrained(path, use_fast=False)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        # self.tokenizer.pad_token = self.tokenizer.eos_token # for llama 2
         self.tokenizer.use_default_system_prompt = True
         # self.conversation_history = []
 
@@ -235,10 +246,10 @@ class Llama2ChatClient:
         """Returns string responses according to fixed prompt styles."""
         prompt_lower = prompt.lower()
         info_keys = ["names", "tones", "fruit_endowment", "fruit_valuations"]
-        Llama2ChatResponse = Llama2Response
+        # Llama2ChatResponse = Llama2Response
         if "read the following summary of a dialgoue between two parties attempting to reach a trade agreement" in prompt_lower:
             return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
-        elif "summary" in prompt_lower:
+        elif ("summary" in prompt_lower) and ("extract out the final value" not in prompt_lower):
             start_idx = prompt_lower.rindex('please summarize the following')
             system_message = prompt[:start_idx]
             user_message = prompt[start_idx:]
@@ -262,13 +273,18 @@ class Llama2ChatClient:
             system_message = prompt[:now_index + char_msg_index]
             user_message = substring_after_now[char_msg_index:]
             return Llama2ChatResponse(model, tokenizer, length, seed, system_message, user_message)
-        for key in info_keys:
-            if key in prompt_lower:
-                start_idx = prompt_lower.index('input:')
-                system_message = prompt[:start_idx]
-                user_message = prompt[start_idx:]
-                return Llama2ChatResponse(model, tokenizer, length, seed, system_message, user_message)
-        if emails.BLOCK_OPT in prompt: # generate scenarios
+        # for key in info_keys:
+        #     if key in prompt_lower:
+        #         start_idx = prompt_lower.index('input:')
+        #         system_message = prompt[:start_idx]
+        #         user_message = prompt[start_idx:]
+        #         return Llama2ChatResponse(model, tokenizer, length, seed, system_message, user_message)
+        elif "continue the list" in prompt_lower:
+            start_idx = prompt_lower.index('input:')
+            system_message = prompt[:start_idx]
+            user_message = prompt[start_idx:]
+            return Llama2ChatResponse(model, tokenizer, length, seed, system_message, user_message)
+        elif emails.BLOCK_OPT in prompt: # generate scenarios
             return Llama2ChatResponse(model, tokenizer, length, seed, "", prompt)
         else:
             raise NotImplementedError("Prompt not recognized!\n\n" + prompt)
@@ -278,7 +294,8 @@ class Llama2ChatClient:
         return [Llama2ChatScore(logprob=log_prob) for log_prob in log_probs]
 
     def list_models(self) -> List[Llama2ChatModel]:
-        llama2_models = ["/home/ewanlee/Models/llama-2-7b-chat/models/"]
+        # llama2_models = ["/home/ewanlee/Models/llama-2-7b-chat/models/"]
+        llama2_models = ["/home/ewanlee/Models/llama-3-8b-instruct/models/"]
         models = [Llama2ChatModel(model_name) for model_name in llama2_models]
         return models
 
@@ -436,14 +453,15 @@ class Llama2ChatModelTest:
         model = AutoModelForCausalLM.from_pretrained(
             path,
             device_map=device_map,
-            torch_dtype=torch.float16,
+            # torch_dtype=torch.float16, # for llama 2
+            torch_dtype=torch.bfloat16, # for llama 3
             # load_in_8bit=True,
             trust_remote_code=True,
             # use_flash_attention_2=True,
         )
         self.model = model.eval()
         self.tokenizer = AutoTokenizer.from_pretrained(path, use_fast=False)
-        self.tokenizer.pad_token = self.tokenizer.eos_token
+        # self.tokenizer.pad_token_id = self.tokenizer.eos_token_id # for llama 2
         self.tokenizer.use_default_system_prompt = True
         self.conversation_history = []
 
@@ -454,9 +472,16 @@ class Llama2ChatModelTest:
         self.conversation_history.append({"role": "user", "content": prompt})
         input_ids = self.tokenizer.apply_chat_template(
             self.conversation_history, 
+            add_generation_prompt=True, # for llama 3
             return_tensors="pt", 
             add_special_tokens=False)
         start_idx = input_ids.shape[-1]
+
+        # for llama 3
+        terminators = [
+            self.tokenizer.eos_token_id,
+            self.tokenizer.convert_tokens_to_ids("<|eot_id|>")
+        ]
 
         if torch.cuda.is_available():
             input_ids = input_ids.to("cuda")
@@ -465,11 +490,12 @@ class Llama2ChatModelTest:
             "input_ids": input_ids,
             "max_new_tokens": num_output_tokens,
             "do_sample": True,
-            "top_k": 50,
+            # "top_k": 50, # for llama 2
             "top_p": 0.9,
             "temperature": 0.6,
-            "repetition_penalty": 1.2,
-            "num_beams": 1,
+            # "repetition_penalty": 1.2, # for llama 2
+            # "num_beams": 1, # for llama 2
+            "eos_token_id": terminators, # for llama 3
         }
         set_seed(seed)
         generate_ids = self.model.generate(**generate_kwargs)

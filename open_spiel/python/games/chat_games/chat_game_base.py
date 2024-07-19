@@ -17,6 +17,7 @@
 import collections
 import dataclasses
 import string
+from datetime import datetime
 
 from typing import Any, Callable, Dict, OrderedDict, List, Tuple, Union
 from absl import logging
@@ -50,7 +51,7 @@ LLM_LENGTH_OBS_CHARS = 300
 LLM_LENGTH_PAYOFF_OBS_TOKENS = 300
 LLM_LENGTH_PAYOFF_OBS_CHARS = 300
 
-LLM_LENGTH_LIST_OF_WORDS_TOKENS = 30
+LLM_LENGTH_LIST_OF_WORDS_TOKENS = 300
 LLM_LIST_GEN_ATTEMPTS = 30
 
 LLM_LENGTH_SCORE_TOKENS = 300
@@ -1050,6 +1051,14 @@ class BaseChatGame(pyspiel.Game):
                                           examples,
                                           self._num_private_info[i],
                                           retrieve_prompt)
+        old_state = self._rnd.get_state()
+        while len(info_list) == 0:
+          self._rnd = np.random.RandomState(int(datetime.now().timestamp()))
+          info_list = self.generate_prompts(info_key,
+                                            examples,
+                                            self._num_private_info[i],
+                                            retrieve_prompt)
+        self._rnd.set_state(old_state)
         logging.info(ct.color('Generated private info for info key = %s:\n%s',
                               color=logging_utils.YELLOW),
                      info_key, '\n-----\n'.join(info_list))
@@ -1154,14 +1163,18 @@ class BaseChatGame(pyspiel.Game):
     """
     ct.set_color(logging_utils.CYAN)
 
+    # for each item in examples, replace '\n' with ' and '
+    examples = [ex.replace('\n', ' and ') for ex in examples]
+
     answers = set()
     num_gen = LLM_LIST_GEN_ATTEMPTS
-    prompt = ['#### INSTRUCTIONS #####',
-              'Given a list of items from a given category, continue the list' +
-              ' and generate one additional item from the same category. The ' +
-              f'category is {key}s. Use `{ITEM_PREFIX}` to denote separate ' +
-              'items. DO NOT explain your output. ' +
-              'Your output should strictly follow the format of the example items.']
+    prompt = ['Given a list of items from a given category, continue the list' +
+              ' and generate ONLY ONE additional item from the same category. The ' +
+              f'category is {key}s. Use `{ITEM_PREFIX}` to denote separate' +
+              'items. Your output should only contains the generated item. ' +
+              'DO NOT explain your output. ']
+              # 'Your output should strictly follow the format of the example items.']
+              # 'Again, DO NOT EXPLAIN YOUR OUTPUT.']
     prompt = '\n'.join(text.wrap(prompt)) + '\n'
     prompt += ('Input:\n' + ITEM_PREFIX +
                ('\n' + ITEM_PREFIX).join(examples) + '\n' +
@@ -1230,49 +1243,56 @@ class BaseChatGame(pyspiel.Game):
     opts = prompt_actions_header
     opts.update(private_info_header)
 
-    # scenarios are generated drawing from a fixed set of personalities
-    header = self._header.w_opts.format(sender=sender,
-                                        receiver=receiver,
-                                        others=others,
-                                        **opts)
+    scenario_class = str(self._examples_scenarios[0].__class__).split('.')[-2]
+    if 'letter' not in scenario_class:
+      # scenarios are generated drawing from a fixed set of personalities
+      header = self._header.w_opts.format(sender=sender,
+                                          receiver=receiver,
+                                          others=others,
+                                          **opts)
 
-    # generate a random scenario
-    # need to generate new scenario with specific players (i.e. names). Can
-    # 1) try to generate multiple scenarios at once and parse output
-    # 2) generate a single scenario by varying the LLM seed
-    # 3) can rely on the randomness in names and private info to induce new
-    #    scenarios
-    # we are currently going with option 3)
-    logging.info('Generating initial scenario...')
-    logging.info('Scenario prompt:\n%s', self._meta_query + header)
-    response = self.generate_response(
-        prompt=self._meta_query + header,
-        seed=DEFAULT_LLM_SEED,
-        num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
-        )
-    response = response[:LLM_LENGTH_MESSAGE_CHARS]
-    logging.info(ct.color('LLM response:\n%s'), response)
-    #input('Press enter to continue...')
-    examples = []
-    ptr = 0
-    i = 0
-    augmented_response = header + response
-    while ptr < len(augmented_response):
-      generated_example = self._header.strip_msg(augmented_response[ptr:],
-                                                 sender)
-      if not generated_example:
-        break
-      ptr += len(generated_example)
-      generated_example = generated_example.strip('\n')
-      logging.info('*Generated Example %d:\n%s', i, generated_example)
-      i += 1
-      examples.append(generated_example)
-    # grab first generated scenario
-    scenario_prompt = examples[0]
-    logging.info('Example 0 selected')
-    actions = collections.OrderedDict(zip(['player_names'],
-                                          [player_names]))
-    actions.update(self._prompt_actions)
+      # generate a random scenario
+      # need to generate new scenario with specific players (i.e. names). Can
+      # 1) try to generate multiple scenarios at once and parse output
+      # 2) generate a single scenario by varying the LLM seed
+      # 3) can rely on the randomness in names and private info to induce new
+      #    scenarios
+      # we are currently going with option 3)
+      logging.info('Generating initial scenario...')
+      logging.info('Scenario prompt:\n%s', self._meta_query + header)
+      response = self.generate_response(
+          prompt=self._meta_query + header,
+          seed=DEFAULT_LLM_SEED,
+          num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
+          )
+      response = response[:LLM_LENGTH_MESSAGE_CHARS]
+      logging.info(ct.color('LLM response:\n%s'), response)
+      #input('Press enter to continue...')
+      examples = []
+      ptr = 0
+      i = 0
+      augmented_response = header + response
+      while ptr < len(augmented_response):
+        generated_example = self._header.strip_msg(augmented_response[ptr:],
+                                                  sender)
+        if not generated_example:
+          break
+        ptr += len(generated_example)
+        generated_example = generated_example.strip('\n')
+        logging.info('*Generated Example %d:\n%s', i, generated_example)
+        i += 1
+        examples.append(generated_example)
+      # grab first generated scenario
+      scenario_prompt = examples[0]
+      logging.info('Example 0 selected')
+      actions = collections.OrderedDict(zip(['player_names'],
+                                            [player_names]))
+      actions.update(self._prompt_actions)
+    else:
+      scenario_prompt = ''
+      # delete the key tone from OrderedDict opts
+      del opts['tone']
+
 
     given_names = player_names
     given_private_info = private_info
@@ -1307,6 +1327,13 @@ class BaseChatGame(pyspiel.Game):
         others=ALL_PLAYERS)
     actions = collections.OrderedDict(zip(['player_names'], [names]))
     actions.update(self._prompt_actions)
+
+    # the private_info of the second player is useless for the letter game
+    # so we replace it with ''
+    scenario_class = str(self._examples_scenarios[0].__class__).split('.')[-2]
+    if 'letter' in scenario_class:
+      for key in private_info.keys():
+        private_info[key][1] = ''
 
     return (actions, self._llm_seeds, scenario_prompt, private_info)
 

@@ -21,6 +21,7 @@ works with `tones` for now.
 import enum
 import itertools
 import math
+import tqdm
 
 from absl import app
 from absl import flags
@@ -34,6 +35,7 @@ import numpy as np
 from open_spiel.python.games import chat_game  # pylint: disable=unused-import
 from open_spiel.python.games.chat_games.configs import config_schedule_meeting_w_tone
 from open_spiel.python.games.chat_games.configs import config_trade_fruit_w_tone
+from open_spiel.python.games.chat_games.configs import config_letter
 from open_spiel.python.games.chat_games.envs.utils import text
 from open_spiel.python.games.chat_games.utils import test_utils as chat_test_utils
 
@@ -44,12 +46,19 @@ _SAVE_PATH = flags.DEFINE_string("save_path",
                                  default="",
                                  help="path for writing results")
 
-LLM_TYPE = chat_test_utils.TestLLM.MOCK
+# LLM_TYPE = chat_test_utils.TestLLM.MOCK
+LLM_TYPE = chat_test_utils.TestLLM.LLAMA2CHAT
 
+# For Python versions >= 3.11, use the following:
+# class Domain(enum.StrEnum):
+#   TRADE_FRUIT_W_TONE = enum.auto()
+#   SCHEDULE_MEETING_W_TONE = enum.auto()
 
-class Domain(enum.StrEnum):
-  TRADE_FRUIT_W_TONE = enum.auto()
-  SCHEDULE_MEETING_W_TONE = enum.auto()
+# For Python versions < 3.11, use the following:
+class Domain(enum.Enum):
+  TRADE_FRUIT_W_TONE = 'trade_fruit_w_tone'
+  SCHEDULE_MEETING_W_TONE = 'schedule_meeting_w_tone'
+  LETTER = 'letter'
 
 
 def get_config():
@@ -59,14 +68,18 @@ def get_config():
   config.game_string = "chat_game"
   config.seed = 34239871
   config.num_iters = 4
-  config.num_trials = 10
+  config.num_trials = 1
   config.num_candidates = 2
-  config.domain = Domain.SCHEDULE_MEETING_W_TONE
+  # config.domain = Domain.SCHEDULE_MEETING_W_TONE
+  # config.domain = Domain.TRADE_FRUIT_W_TONE
+  config.domain = Domain.LETTER
 
   if config.domain == Domain.TRADE_FRUIT_W_TONE:
     config.env_config = config_trade_fruit_w_tone.get_config()
   elif config.domain == Domain.SCHEDULE_MEETING_W_TONE:
     config.env_config = config_schedule_meeting_w_tone.get_config()
+  elif config.domain == Domain.LETTER:
+    config.env_config = config_letter.get_config()
   else:
     raise ValueError("Unknown domain: %s" % config.domain)
 
@@ -170,20 +183,23 @@ def estimate_payoff_tensor(game, rnd, num_trials=5):
   joint_actions = list(itertools.product(range(num_actions),
                                          repeat=num_players))
 
-  for trial in range(num_trials):
-    for joint_action_idx in joint_actions:
-      policies = []
-      for _, tone_idx in zip(range(num_players), joint_action_idx):
-        fixed_tone = {"tone": game.given_prompt_actions["tone"][tone_idx]}
-        policy = lambda state: fixed_prompt_policy(rnd, state, fixed_tone)  # pylint:disable=cell-var-from-loop
-        policies.append(policy)
-      player_policy = build_player_policy(policies)
+  with tqdm.tqdm(total=num_trials * len(joint_actions)) as pbar:
+    for trial in range(num_trials):
+      for joint_action_idx in joint_actions:
+        policies = []
+        for _, tone_idx in zip(range(num_players), joint_action_idx):
+          fixed_tone = {"tone": game.given_prompt_actions["tone"][tone_idx]}
+          policy = lambda state: fixed_prompt_policy(rnd, state, fixed_tone)  # pylint:disable=cell-var-from-loop
+          policies.append(policy)
+        player_policy = build_player_policy(policies)
 
-      returns = simulate_dialogue(game, player_policy)
+        returns = simulate_dialogue(game, player_policy)
 
-      pt_index = (trial, slice(None)) + joint_action_idx
+        pt_index = (trial, slice(None)) + joint_action_idx
 
-      payoff_tensor[pt_index] = returns
+        payoff_tensor[pt_index] = returns
+
+        pbar.update(1)
 
   return payoff_tensor
 
@@ -262,7 +278,8 @@ class PSRO():
     self.game = pyspiel.load_game(self.game_string,
                                   self.config.params.to_dict())
 
-    vectorizer = chat_test_utils.MockVectorizer()
+    # vectorizer = chat_test_utils.MockVectorizer()
+    vectorizer = chat_test_utils.Llama2ChatVectorizer()
     vectorize = vectorizer.vectorize
 
     self.load_dict = {"llm_type": LLM_TYPE,
@@ -315,6 +332,9 @@ class PSRO():
                                                       ["tone"],
                                                       eq)  # pylint:disable=cell-var-from-loop
         background_policies.append(bg_policy)
+
+      # release self.game
+      self.game = None
 
       scores, candidates = score_candidate_responses(
           self.game_string,
