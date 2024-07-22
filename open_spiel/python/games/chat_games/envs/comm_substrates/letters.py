@@ -32,6 +32,12 @@ PLAIN = ('\n\n' + BLOCK_MSG + '\n' +
          'to: {receiver}\n' +
          BLOCK_MSG + '\n\n')
 
+PLAIN_HR = ('\n\n' + BLOCK_MSG + '\n' +
+            'Notice of Decision:\n' +
+            'from: {sender}\n' +
+            'to: {receiver}\n' +
+            BLOCK_MSG + '\n\n')
+
 W_OPTS_PREFIX = '\n\n' + BLOCK_OPT + '\n\n'
 
 

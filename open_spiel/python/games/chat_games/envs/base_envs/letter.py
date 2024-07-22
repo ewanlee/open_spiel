@@ -28,6 +28,7 @@ from open_spiel.python.games.chat_games.envs.utils import text
 action_keys = tuple(['tone'])
 # info_keys = tuple(['fruit_endowment', 'fruit_valuations'])
 info_keys = tuple(['quality', 'name', 'major', 'GPA', 'project', 'work_experience', 'academic'])
+info_keys_hr = tuple([])
 
 # w_opts = (trades.W_OPTS_PREFIX +
 #           'Fruit Endowment:\n{fruit_endowment}\n\n' +
@@ -45,6 +46,9 @@ w_opts = (letters.W_OPTS_PREFIX +
           'Academic: {academic}\n\n' +
           # 'Tone: Use a {tone} tone.\n' +
           letters.PLAIN)
+
+w_opts_hr = (letters.W_OPTS_PREFIX +
+             letters.PLAIN)
 
 # Example a
 
@@ -176,28 +180,33 @@ letter_d = ['Dear {receiver},',
                    'Sincerely,', '{sender}']
 letter_d = '\n\n'.join(text.wrap(letter_d)).format(sender='Rookie', receiver='TheShy')
 
-instr_a = ['You are an assistant who is playing a game where you trade fruit.' +
-           ' You want to make a trade that is best for you. You will read a ' +
-           'dialogue that contains a conversation where you have been ' +
-           'negotiating to trade your fruit for another persons fruit. You ' +
-           'will then read a text block that contains information a) about ' +
-           'the actual fruit you currently have and are able to trade and b)' +
-           ' information about how much you value certain types of fruit.',
-           'You should use everything you learned from this to decide to ',
-           '1) accept the trade if you are happy with the terms,',
-           '2) reject the negotiation all together and say goodbye if you do ' +
-           'not think an agreement can be reached,',
-           '3) counter-propose an alternative trade that includes what fruit ' +
-           'you would like to give and what fruit you would like to receive ' +
-           'in turn.',
-           'Consider the following example dialogues. Components of the ' +
-           'examples will be demarked with the symbol "&". Here is the first ' +
-           'example which shows a trade is rejected.',
-           '&' * 50]
+# instr_a = ['You are an assistant who is playing a game where you trade fruit.' +
+#            ' You want to make a trade that is best for you. You will read a ' +
+#            'dialogue that contains a conversation where you have been ' +
+#            'negotiating to trade your fruit for another persons fruit. You ' +
+#            'will then read a text block that contains information a) about ' +
+#            'the actual fruit you currently have and are able to trade and b)' +
+#            ' information about how much you value certain types of fruit.',
+#            'You should use everything you learned from this to decide to ',
+#            '1) accept the trade if you are happy with the terms,',
+#            '2) reject the negotiation all together and say goodbye if you do ' +
+#            'not think an agreement can be reached,',
+#            '3) counter-propose an alternative trade that includes what fruit ' +
+#            'you would like to give and what fruit you would like to receive ' +
+#            'in turn.',
+#            'Consider the following example dialogues. Components of the ' +
+#            'examples will be demarked with the symbol "&". Here is the first ' +
+#            'example which shows a trade is rejected.',
+#            '&' * 50]
 
 instr_a = [
     "You are a senior professor, and students often come to you for recommendation letters. The quality of these students varies, but only you know their true information, which includes their overall quality, name, major, GPA, project experience, work experience, and academic experience. The readers of the recommendation letters are the HRs of a university, and they can know the true quality of the student after giving them an offer. They can also judge the student's quality based on their past experience, though not necessarily accurately. To maximize the chances of your recommended students being accepted, you can truthfully convey the student's information in the recommendation letter, or you can conceal, confuse, or even provide some false information about the student. For your long-term benefit, you don't necessarily have to recommend every student in the recommendation letter. You could recommend a bad student or a good student to maximize your long-term reward.",
     '&' * 50,
+]
+
+instr_hr_a = [
+  "You are a staff member in the HR department of a university, responsible for reviewing recommendation letters written by professors for students. Your task is to infer the quality of the students from these letters to decide whether to admit them. Be aware that professors, in an attempt to increase the chances of their students being admitted, may hide, confuse, or even provide false information about the students. You need to make careful judgments. However, you are not completely in the dark—you know the writing style of the professor who wrote the letter. Based on the professor's writing style and the content of the recommendation letter, first provide your analysis and then make a final decision on whether to admit the student.",
+  '&' * 50,
 ]
 
 
@@ -272,6 +281,12 @@ instr_f = ['&' * 50,
            'Now you are going to read a fresh student information, the overall quality, name, major, GPA, project experience, work experience, and academic experience. Please give a reasonable recommendation letter that attempts to reach an agreement with the HR.',
            '&' * 50]
 
+instr_f_hr = ['&' * 50,
+              'Now you are going to read a fresh recommendation letter. Please give a reasonable analysis and make a final decision on whether to admit the student.',
+              'You cannot request additional information from the professor. You must make a decision based on the information provided in the letter.',
+              'Your output should follow the format: "Analysis:\n\n[your analysis]\n\nFinal Decision:\n\n[binary, admit or not admit]".',
+              '&' * 50]
+
 # context = (text.wrap(instr_a) + [example_a] + text.wrap(instr_b) +[example_b] +
 #            text.wrap(instr_c) + [example_c] + text.wrap(instr_d) + [info] +
 #            text.wrap(instr_e) + [email_3c] + text.wrap(instr_f))
@@ -283,6 +298,9 @@ context = (text.wrap(instr_a) +
            text.wrap(instr_e) + [info_d] + [letter_d] + 
            text.wrap(instr_f))
 
+context_hr = (text.wrap(instr_hr_a) +
+              text.wrap(instr_f_hr))
+
 # HEADER = header.Header(trades.PLAIN,
 #                        w_opts,
 #                        trades.strip_msg,
@@ -291,13 +309,17 @@ context = (text.wrap(instr_a) +
 #                        info_keys,
 #                        '\n\n'.join(context))
 
-HEADER = header.Header(letters.PLAIN,
-                        w_opts,
-                        letters.strip_msg,
-                        letters.SPECIAL_CHARS,
-                        action_keys,
-                        info_keys,
-                        '\n\n'.join(context))
+HEADER = header.LetterHeader(letters.PLAIN,
+                       letters.PLAIN_HR,
+                       w_opts,
+                       w_opts_hr,
+                       letters.strip_msg,
+                       letters.SPECIAL_CHARS,
+                       action_keys,
+                       info_keys,
+                       info_keys_hr,
+                       '\n\n'.join(context),
+                       '\n\n'.join(context_hr))
 
 # @dataclasses.dataclass(frozen=True)
 # class Scenario(header.BaseScenario):

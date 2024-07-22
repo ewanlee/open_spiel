@@ -28,6 +28,7 @@ from open_spiel.python.games.chat_games.envs.payoffs import utils as payoff_util
 from open_spiel.python.games.chat_games.envs.termination import utils as term_utils
 from open_spiel.python.games.chat_games.envs.utils import header as header_utils
 from open_spiel.python.games.chat_games.envs.utils import text
+from open_spiel.python.games.chat_games.envs.comm_substrates import letters
 
 from open_spiel.python.games.chat_games.utils import logging_utils
 
@@ -44,17 +45,17 @@ MIN_RND_SEED = 42
 MAX_RND_SEED = 9999
 DEFAULT_LLM_SEED = 42
 
-LLM_LENGTH_MESSAGE_TOKENS = 300
-LLM_LENGTH_MESSAGE_CHARS = 300
-LLM_LENGTH_OBS_TOKENS = 300
-LLM_LENGTH_OBS_CHARS = 300
-LLM_LENGTH_PAYOFF_OBS_TOKENS = 300
-LLM_LENGTH_PAYOFF_OBS_CHARS = 300
+LLM_LENGTH_MESSAGE_TOKENS = 3000
+LLM_LENGTH_MESSAGE_CHARS = 3000
+LLM_LENGTH_OBS_TOKENS = 3000
+LLM_LENGTH_OBS_CHARS = 3000
+LLM_LENGTH_PAYOFF_OBS_TOKENS = 3000
+LLM_LENGTH_PAYOFF_OBS_CHARS = 3000
 
-LLM_LENGTH_LIST_OF_WORDS_TOKENS = 300
+LLM_LENGTH_LIST_OF_WORDS_TOKENS = 3000
 LLM_LIST_GEN_ATTEMPTS = 30
 
-LLM_LENGTH_SCORE_TOKENS = 300
+LLM_LENGTH_SCORE_TOKENS = 3000
 
 ITEM_PREFIX = '* '
 
@@ -140,8 +141,14 @@ class ChatGameState(pyspiel.State):
 
     self._played_actions = []
     self._dialogue = [scenario_prompt]
-    self._current_speaker = 1
-    self._current_player = 1
+    
+    if 'GPA' not in self._private_info.keys():
+      self._current_speaker = 1 
+      self._current_player = 1
+    else:
+      self._current_speaker = 0
+      self._current_player = 0
+    
     self._speakers = []
     self._num_actions_played = 0
     self._returns = None
@@ -320,9 +327,15 @@ class ChatGameState(pyspiel.State):
 
     names, _ = self._names_from_validated_receiver(receiver, speaker)
     speaker_name, receiver_name, others_names = names
-    header_plain = header.plain.format(sender=speaker_name,
-                                       receiver=receiver_name,
-                                       others=others_names)
+
+    if 'GPA' in action_dict['info'].keys() and speaker == 1:
+      header_plain = header.plain_hr.format(sender=speaker_name,
+                                            receiver=receiver_name,
+                                            others=others_names)
+    else:
+      header_plain = header.plain.format(sender=speaker_name,
+                                        receiver=receiver_name,
+                                        others=others_names)
 
     header_w_opts = header.w_opts.format(sender=speaker_name,
                                          receiver=receiver_name,
@@ -334,7 +347,52 @@ class ChatGameState(pyspiel.State):
                  speaker_name)
     #input('Press enter to continue...')
 
-    prompt = header.context + '\n\n' + self.dialogue_str + header_w_opts
+    if 'GPA' in action_dict['info'].keys():
+      action = action_dict['action']
+      instruction_prompt = 'You\'re an expert to translate the dictionary into a prompt for an LLM to generate a recommendation letter. ' + \
+        'For example, if the dictionary is {\'tone\': \'calm\'}, then the prompt could be:\n\n' + \
+          'Write the letter in a calm tone\n\n' + \
+            'Next, the fresh dictionary you need to translate is:\n\n'
+      for key, value in action.items():
+        instruction_prompt += f'{key}: {value}\n'
+      instruction_prompt += '\nOnly reply with the prompt and do not provide an explanation:\n\n'
+      response = self.get_game().generate_response(
+        prompt=instruction_prompt,
+        seed=self._llm_seeds[speaker],
+        num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
+      )
+      style_instruction = response[:LLM_LENGTH_MESSAGE_CHARS].upper()
+      if speaker == 0:
+        prompt = header.context + '\n\n' + style_instruction
+      elif speaker == 1:
+        prompt = header.context_hr + '\n\n' + style_instruction
+    else:
+      prompt = header.context + '\n\n'
+
+    if self.get_game()._num_max_replies > 1:
+      if 'GPA' in action_dict['info'].keys() and speaker == 1:
+        # TODO: double check
+        pre_action = self.unravel_flat_action_to_dict(0, self._played_actions[-2])
+        pre_action = pre_action['action']
+        instruction_prompt = 'You\'re an expert to translate the dictionary into a prompt for an LLM to generate a recommendation letter. ' + \
+          'For example, if the dictionary is {\'tone\': \'calm\'}, then the prompt could be:\n\n' + \
+            'Write the letter in a calm tone\n\n' + \
+              'Next, the fresh dictionary you need to translate is:\n\n'
+        for key, value in pre_action.items():
+          instruction_prompt += f'{key}: {value}\n'
+        instruction_prompt += '\nOnly reply with the prompt and do not provide an explanation:\n\n'
+        response = self.get_game().generate_response(
+          prompt=instruction_prompt,
+          seed=self._llm_seeds[speaker],
+          num_output_tokens=LLM_LENGTH_MESSAGE_TOKENS
+        )
+        signaling_scheme = response[:LLM_LENGTH_MESSAGE_CHARS].upper()
+        signaling_scheme = '\n\nThe professor\'s writing style is: ' + signaling_scheme
+        prompt += self.dialogue[-1] + letters.W_OPTS_PREFIX + signaling_scheme + letters.W_OPTS_PREFIX + header_plain
+      else:
+        prompt += self.dialogue_str + header_w_opts
+    else:
+      prompt += header_w_opts
 
     return prompt, header_plain
 
@@ -408,7 +466,9 @@ class ChatGameState(pyspiel.State):
           f'{k}:\n{v}' for k, v in zip(self.get_game().header.info_keys,
                                        extra_info_strs)
       ]
-      info_prefix_p = name + '\n' + '\n'.join(info_prefix_p)
+      if 'GPA' in self.get_game().header.info_keys and player == 1:
+        info_prefix_p = []
+      info_prefix_p = 'Information of ' + name + '\n' + '\n'.join(info_prefix_p)
       info_prefix.append(info_prefix_p)
     info_prefix = '\n\n'.join(info_prefix)
 
@@ -417,6 +477,8 @@ class ChatGameState(pyspiel.State):
       player_payoffs = []
       for p, payoff in enumerate(self.get_game().payoffs):
         if payoff.obs_trans_prefix or payoff.obs_trans_postfix:
+          if 'GPA' in self.get_game().header.info_keys:
+              dialogue = info_prefix + '\n\n' + dialogue
           payoff_obs_prompt = (payoff.obs_trans_prefix +
                                dialogue + '\n\n' +
                                payoff.obs_trans_postfix)
@@ -433,7 +495,10 @@ class ChatGameState(pyspiel.State):
           payoff_obs = response[:LLM_LENGTH_PAYOFF_OBS_CHARS]
         else:
           payoff_obs = dialogue
-        payoff_obs = info_prefix + '\n\n' + payoff_obs
+        if 'GPA' not in self.get_game().header.info_keys:
+          payoff_obs = info_prefix + '\n\n' + payoff_obs
+        else:
+          name = 'Professor' if player == 0 else 'HR'
         query = self._build_payoff_query(payoff.query, payoff_obs, name)
         logging.info(ct.color('Calculating payoff %d (player=%d:%s)...'),
                      p, player, name)

@@ -247,9 +247,19 @@ class Llama2ChatClient:
         prompt_lower = prompt.lower()
         info_keys = ["names", "tones", "fruit_endowment", "fruit_valuations"]
         # Llama2ChatResponse = Llama2Response
-        if "read the following summary of a dialgoue between two parties attempting to reach a trade agreement" in prompt_lower:
+        if "translate the dictionary" in prompt_lower:
             return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
-        elif ("summary" in prompt_lower) and ("extract out the final value" not in prompt_lower):
+        elif "give a reasonable recommendation letter" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif "make a final decision on whether to admit the\nstudent" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif "judge the decision made by the hr department" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif "you are an assistant designed to calculate the rewards" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif "read the following summary of a dialgoue between two parties attempting to reach" in prompt_lower:
+            return Llama2ChatResponse(model, tokenizer, length, seed, '', prompt)
+        elif ("summary" in prompt_lower) and ("extract out the final value" not in prompt_lower) and ("make a final decision on whether to admit the\nstudent" not in prompt_lower):
             start_idx = prompt_lower.rindex('please summarize the following')
             system_message = prompt[:start_idx]
             user_message = prompt[start_idx:]

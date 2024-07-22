@@ -20,65 +20,110 @@ from open_spiel.python.games.chat_games.envs.utils import text
 
 MIN_PAYOFF = -1
 MAX_PAYOFF = 1
+
+# PAYOFF_PROMPT_a = [
+#     'You are an assistant designed to calculate the values of trades ' +
+#     'in a fruit trading game. Determine the value of the fruits the player ' +
+#     'is receiving in the trade. Then determine the value of the fruits the ' +
+#     'player is giving up through the trade. Subtract the value the player ' +
+#     'gives away from the value the player receives. Here is an example ' +
+#     'enclosed by "&".']
+
 PAYOFF_PROMPT_a = [
-    'You are an assistant designed to calculate the values of trades ' +
-    'in a fruit trading game. Determine the value of the fruits the player ' +
-    'is receiving in the trade. Then determine the value of the fruits the ' +
-    'player is giving up through the trade. Subtract the value the player ' +
-    'gives away from the value the player receives. Here is an example ' +
-    'enclosed by "&".']
+    'You are an assistant designed to calculate the rewards for the professor ' +
+    'and the HR department in a recommendation letter game. The HR will get ' +
+    'a reward of 1 for hiring a good candidate and a reward of -1 for hiring ' +
+    'a bad candidate. The professor will get a reward of 1 for each hire and ' +
+    'a reward of 0 for not hiring. Here is an example enclosed by "&".'
+]
+
+# PAYOFF_PROMPT_b = [
+#     '&' * 50,
+#     'To calculate the trade value, we first calculate the value of ' +
+#     'the fruit Bob receives in the trade. Bob receives 3 kiwis worth 3 each. ' +
+#     'Therefore Bob receives a value of 9 in the trade.',
+#     'Receives: 9',
+#     'Now we calculate the value of the fruits Bob gives up in the trade. ' +
+#     'Bob gives up1 banana which is worth 5, therefore, Bob gives up a value ' +
+#     'of 5 in the trade.',
+#     'Gives: 5',
+#     'Subtracting the value Bob gives away from the value Bob receives, we ' +
+#     'find 9 - 5 = 4.',
+#     'Calculation: Receives - Gives = 9 - 5 = 4.',
+#     'Value for Bob: 4.',
+#     '&' * 50,
+#     'Now calculate the value of the trade made in the following message.',
+#     '{m}',
+#     '&' * 50,
+#     'Trade calculation for {p} ONLY: ',]
 
 PAYOFF_PROMPT_b = [
     '&' * 50,
-    'To calculate the trade value, we first calculate the value of ' +
-    'the fruit Bob receives in the trade. Bob receives 3 kiwis worth 3 each. ' +
-    'Therefore Bob receives a value of 9 in the trade.',
-    'Receives: 9',
-    'Now we calculate the value of the fruits Bob gives up in the trade. ' +
-    'Bob gives up1 banana which is worth 5, therefore, Bob gives up a value ' +
-    'of 5 in the trade.',
-    'Gives: 5',
-    'Subtracting the value Bob gives away from the value Bob receives, we ' +
-    'find 9 - 5 = 4.',
-    'Calculation: Receives - Gives = 9 - 5 = 4.',
-    'Value for Bob: 4.',
+    'Due to the HR department hiring a good candidate, the HR department ' +
+    'receives a reward of 1. ' +
+    'Meantime, the professor receives a reward of 1 for the hire.',
+    'Reward for Professor: 1',
+    'Reward for HR: 1',
     '&' * 50,
-    'Now calculate the value of the trade made in the following message.',
+    # 'Now calculate the rewards for the professor and the HR department in the ' +
+    # 'following message. DO NOT EXPLAIN YOUR REASONING AND ONLY REPORT THE ' +
+    # 'REWARD.',
+    'Now calculate the rewards for the professor and the HR department in the ' +
+    'following message.',
     '{m}',
     '&' * 50,
-    'Trade calculation for {p} ONLY: ',]
+    'Rewards calculation for {p} ONLY: ',]
+
+# PAYOFF_PROMPT = ('\n\n'.join(text.wrap(PAYOFF_PROMPT_a)) + '\n\n' + '&' * 50 +
+#                  '\n\nBob offered to give up 1 banana for 3 kiwis. Alice ' +
+#                  'agreed to the trade.\n\n' +
+#                  '\n\n'.join(text.wrap(PAYOFF_PROMPT_b)))
 
 PAYOFF_PROMPT = ('\n\n'.join(text.wrap(PAYOFF_PROMPT_a)) + '\n\n' + '&' * 50 +
-                 '\n\nBob offered to give up 1 banana for 3 kiwis. Alice ' +
-                 'agreed to the trade.\n\n' +
+                 '\n\nStudent Quality: Good\nDecision: Hire\n\n' +
                  '\n\n'.join(text.wrap(PAYOFF_PROMPT_b)))
 
-PAYOFF_OBS_TRANS_PREFIX = ['Read the following dialogue between two parties ' +
-                           'attempting to reach a trade agreement. If the ' +
-                           'dialogue ends with someone asking a question or ' +
-                           'making a couterproposal, an agreement has not ' +
-                           'been reached. If the dialogue ends with someone ' +
-                           'saying they accept the trade, an agreement has ' +
-                           'been reached. Report how much of each fruit each ' +
-                           'player gave and received in the tradeby stating ' +
-                           'the players names followed by a list of the ' +
-                           'fruits the gave up and then a list of the fruits ' +
-                           'they received in this format:',
-                           'Player [Name]: Receives x Gives y',
-                           'Player [Name]: Receives y Gives x',
-                           'Example 1:',
-                           'Dialogue:',
-                           'Bob offered to give up 1 banana for 3 kiwis. ' +
-                           'Alice agreed to the trade.',
-                           'Player Bob: Receives 3 kiwis Gives 1 banana',
-                           'Player Suzy: Receives 1 banana Gives 3 kiwis',
-                           'Example 2:',
-                           'Dialogue:',
-                           'Alice offered to give up 1 banana for 3 kiwis. ' +
-                           'George does not want to trade.',
-                           'Player Bob: Receives 0 kiwi Gives 0 banana',
-                           'Player Suzy: Receives 0 banana Gives 0 kiwi',
-                           'Dialogue:']
+
+# PAYOFF_OBS_TRANS_PREFIX = ['Read the following dialogue between two parties ' +
+#                            'attempting to reach a trade agreement. If the ' +
+#                            'dialogue ends with someone asking a question or ' +
+#                            'making a couterproposal, an agreement has not ' +
+#                            'been reached. If the dialogue ends with someone ' +
+#                            'saying they accept the trade, an agreement has ' +
+#                            'been reached. Report how much of each fruit each ' +
+#                            'player gave and received in the tradeby stating ' +
+#                            'the players names followed by a list of the ' +
+#                            'fruits the gave up and then a list of the fruits ' +
+#                            'they received in this format:',
+#                            'Player [Name]: Receives x Gives y',
+#                            'Player [Name]: Receives y Gives x',
+#                            'Example 1:',
+#                            'Dialogue:',
+#                            'Bob offered to give up 1 banana for 3 kiwis. ' +
+#                            'Alice agreed to the trade.',
+#                            'Player Bob: Receives 3 kiwis Gives 1 banana',
+#                            'Player Suzy: Receives 1 banana Gives 3 kiwis',
+#                            'Example 2:',
+#                            'Dialogue:',
+#                            'Alice offered to give up 1 banana for 3 kiwis. ' +
+#                            'George does not want to trade.',
+#                            'Player Bob: Receives 0 kiwi Gives 0 banana',
+#                            'Player Suzy: Receives 0 banana Gives 0 kiwi',
+#                            'Dialogue:']
+
+PAYOFF_OBS_TRANS_PREFIX = ['Read the following dialogue between the professor ' +
+                            'and the HR department attempting to reach a decision. ' +
+                            'You first need to extract the student quality from the ' +
+                            'professor\'s information. Then you need to judge the decision ' +
+                            'made by the HR department. List the information in the ' +
+                            'following format:',
+                            'Student Quality: [Good or Bad]',
+                            'Decision: [Hire or Not Hire]',
+                            'DO NOT EXPLAIN YOUR REASONING AND ONLY REPORT ' +
+                            'THE STUDENT QUALITY AND DECISION MADE.',
+                            'Dialogue:']
+
+
 PAYOFF_OBS_TRANS_PREFIX = ('\n\n'.join(text.wrap(PAYOFF_OBS_TRANS_PREFIX)) +
                            '\n\n')
 

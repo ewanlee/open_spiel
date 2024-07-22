@@ -27,7 +27,6 @@ class BaseScenario:
   sender: str
   receiver: str
 
-
 @dataclasses.dataclass(frozen=True)
 class Header:
   plain: str
@@ -37,6 +36,21 @@ class Header:
   action_keys: Tuple[str, ...] = tuple([])
   info_keys: Tuple[str, ...] = tuple([])
   context: str = ''
+
+@dataclasses.dataclass(frozen=True)
+class LetterHeader:
+  plain: str
+  plain_hr: str
+  w_opts: str
+  w_opts_hr: str
+  strip_msg: Callable[[str, str], str]
+  special_chars: Tuple[str, ...]
+  action_keys: Tuple[str, ...] = tuple([])
+  info_keys: Tuple[str, ...] = tuple([])
+  info_keys_hr: Tuple[str, ...] = tuple([])
+  context: str = ''
+  context_hr: str = '' # for recommendation letters
+
 
 
 def plain_header_is_valid(header: Header) -> bool:
